@@ -1,0 +1,35 @@
+name: Build and Deploy to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: azure-deployment
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Docker Build and Push
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: true
+        tags: ${{ secrets.ACR_LOGIN_SERVER }}/mlops-app:${{ github.sha }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+        images: '${{ secrets.ACR_LOGIN_SERVER }}/mlops-app:${{ github.sha }}'
+        resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
